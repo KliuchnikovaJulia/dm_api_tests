@@ -1,12 +1,11 @@
 from requests import session
 
+from restclient.client import RestClient
 
-class LoginApi:
-    def __init__(self):
-        self.session = session()
-        self.base_url = 'http://5.63.153.31:5051'
+
+class LoginApi(RestClient):
+
 
     def post_v1_account_login(self, json_data):
-        response = self.session.post(f'{self.base_url}/v1/account/login', json=json_data)
+        response = self.post(f'/v1/account/login', json=json_data)
         return response
-    
