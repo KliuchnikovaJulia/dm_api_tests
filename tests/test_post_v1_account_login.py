@@ -4,6 +4,7 @@ import uuid
 from apis.dm_api_account.account_api import AccountApi
 from apis.dm_api_account.login_api import LoginApi
 from apis.mailhog_api.mailhog_api import MailhogApi
+from restclient.configaration import Configuration
 import structlog
 
 structlog.configure(
@@ -14,9 +15,11 @@ structlog.configure(
 
 
 def test_post_v1_account_login():
-    account_api = AccountApi(host='http://5.63.153.31:5051')
-    mailhog_api = MailhogApi(host='http://5.63.153.31:5025')
-    login_api = LoginApi(host='http://5.63.153.31:5051')
+    configuration = Configuration(host='http://5.63.153.31:5051', disable_log=False)
+    mailhog_configuration = Configuration(host='http://5.63.153.31:5025')
+    account_api = AccountApi(configuration)
+    mailhog_api = MailhogApi(mailhog_configuration)
+    login_api = LoginApi(configuration)
     login = str(uuid.uuid4())
     json_data = {
         "login": login,
