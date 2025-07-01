@@ -7,6 +7,7 @@ from apis.dm_api_account.login_api import LoginApi
 from apis.mailhog_api.mailhog_api import MailhogApi
 import structlog
 
+from helpers.account_helper import AccountHelper
 from restclient.configaration import Configuration
 
 structlog.configure(
@@ -22,81 +23,22 @@ def test_put_v1_account_email():
     mailhog_api = MailhogApi(mailhog_configuration)
     login_api = LoginApi(configuration)
     login = str(uuid.uuid4())
-    json_data = {
-        "login": login,
-        "email": f'{login}@mail.ru',
-        "password": "123456789"
-    }
-    response = account_api.post_v1_account(
-        json_data=json_data
-
-    )
-    assert response.status_code == 201
-
-    response = mailhog_api.get_v2_messages(limit=10)
-    for item in response.json()['items']:
-        print(1, item['Content']['Body'])
-        try:
-            body = json.loads(item['Content']['Body'])
-            email_login = body['Login']
-            if login == email_login:
-                token = body['ConfirmationLinkUrl']
-                activation_token = token.split('/')[4]
-        except JSONDecodeError:
-            ...
-    response = account_api.put_v1_account_token(token=activation_token)
+    email = login + '@mail.ru'
+    password = '123456789'
+    account_helper = AccountHelper(account_api=account_api, mailhog_api=mailhog_api, login_api=login_api)
+    response = account_helper.register_new_user(login, email, password)
     assert response.status_code == 200
-    json_data = {
-        "login": login,
-        "password": "123456789",
-        "rememberMe": True
-    }
-    response = login_api.post_v1_account_login(
-        json_data=json_data
-    )
-    print(response.json())
+    response = account_helper.login(login, password)
     assert response.status_code == 200
     new_email = f'{uuid.uuid4()}@mail.com'
-    json_data = {
-            "login": login,
-            "password": "123456789",
-            "email": new_email,
-    }
-    response = account_api.put_v1_account_email(
-        json_data=json_data
-    )
-
-    json_data = {
-        "login": login,
-        "password": "123456789",
-        "rememberMe": True
-    }
-    response = login_api.post_v1_account_login(
-        json_data=json_data
-    )
-    print(response.json())
+    response = account_helper.change_email(login, password, new_email)
+    assert response.status_code == 200
+    response = account_helper.login(login, password)
     assert response.status_code == 403
 
-    response = mailhog_api.get_v2_messages(limit=10)
-    for item in response.json()['items']:
-        print(1, item['Content']['Body'])
-        try:
-            body = json.loads(item['Content']['Body'])
-            email_login = body['Login']
-            if login == email_login:
-                token = body['ConfirmationLinkUrl']
-                activation_token = token.split('/')[4]
-        except JSONDecodeError:
-            ...
+    activation_token = account_helper.find_token(login)
     response = account_api.put_v1_account_token(token=activation_token)
     assert response.status_code == 200
 
-    json_data = {
-        "login": login,
-        "password": "123456789",
-        "rememberMe": True
-    }
-    response = login_api.post_v1_account_login(
-        json_data=json_data
-    )
+    response = account_helper.login(login, password)
     assert response.status_code == 200
